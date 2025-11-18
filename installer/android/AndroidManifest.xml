@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<manifest package="com.datainquiry.mapaddress" 
+          xmlns:android="http://schemas.android.com/apk/res/android" 
+          android:versionName="1.0.0" 
+          android:versionCode="1" 
+          android:installLocation="auto">
+    
+    <application android:hardwareAccelerated="true" 
+                 android:name="org.qtproject.qt.android.bindings.QtApplication" 
+                 android:label="@string/app_name"
+                 android:icon="@drawable/icon"
+                 android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+        
+        <activity android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|layoutDirection|locale|fontScale|keyboard|keyboardHidden|navigation|mcc|mnc|density" 
+                  android:name="org.qtproject.qt.android.bindings.QtActivity" 
+                  android:label="@string/app_name" 
+                  android:screenOrientation="unspecified" 
+                  android:launchMode="singleTop"
+                  android:exported="true"
+                  android:windowSoftInputMode="adjustResize">
+            
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            
+            <!-- Qt metadata -->
+            <meta-data android:name="android.app.lib_name" android:value="MapAddress"/>
+            <meta-data android:name="android.app.qt_sources_resource_id" android:resource="@array/qt_sources"/>
+            <meta-data android:name="android.app.repository" android:value="default"/>
+            <meta-data android:name="android.app.qt_libs_resource_id" android:resource="@array/qt_libs"/>
+            <meta-data android:name="android.app.bundled_libs_resource_id" android:resource="@array/bundled_libs"/>
+            <meta-data android:name="android.app.bundle_local_qt_libs" android:value="-- %%BUNDLE_LOCAL_QT_LIBS%% --"/>
+            <meta-data android:name="android.app.load_local_qt_libs" android:value="-- %%INSERT_LOCAL_QT_LIBS%% --"/>
+            <meta-data android:name="android.app.load_local_jars" android:value="-- %%INSERT_LOCAL_JARS%% --"/>
+            <meta-data android:name="android.app.static_init_classes" android:value="-- %%INSERT_INIT_CLASSES%% --"/>
+            <meta-data android:name="android.app.extract_android_style" android:value="minimal"/>
+        </activity>
+    </application>
+    
+    <!-- Permissions -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
+    
+    <!-- Features -->
+    <uses-feature android:name="android.hardware.location" android:required="false"/>
+    <uses-feature android:name="android.hardware.location.gps" android:required="false"/>
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
+    
+    <!-- SDK versions -->
+    <uses-sdk android:minSdkVersion="28" android:targetSdkVersion="33"/>
+</manifest>

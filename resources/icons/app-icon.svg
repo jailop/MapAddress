@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="64" fill="#2563eb"/>
+  
+  <!-- Map pin -->
+  <g transform="translate(256, 140)">
+    <!-- Pin shape -->
+    <path d="M 0,-80 C -44,-80 -80,-44 -80,0 C -80,55 0,120 0,120 C 0,120 80,55 80,0 C 80,-44 44,-80 0,-80 Z" 
+          fill="#ffffff" stroke="#1e40af" stroke-width="8"/>
+    
+    <!-- Inner circle -->
+    <circle cx="0" cy="0" r="30" fill="#ef4444"/>
+  </g>
+  
+  <!-- Map grid lines -->
+  <g stroke="#93c5fd" stroke-width="3" fill="none" opacity="0.5">
+    <!-- Horizontal lines -->
+    <line x1="80" y1="320" x2="432" y2="320"/>
+    <line x1="80" y1="360" x2="432" y2="360"/>
+    <line x1="80" y1="400" x2="432" y2="400"/>
+    <line x1="80" y1="440" x2="432" y2="440"/>
+    
+    <!-- Vertical lines -->
+    <line x1="120" y1="300" x2="120" y2="460"/>
+    <line x1="180" y1="300" x2="180" y2="460"/>
+    <line x1="240" y1="300" x2="240" y2="460"/>
+    <line x1="300" y1="300" x2="300" y2="460"/>
+    <line x1="360" y1="300" x2="360" y2="460"/>
+  </g>
+  
+  <!-- Small markers -->
+  <circle cx="150" cy="380" r="8" fill="#fbbf24"/>
+  <circle cx="320" cy="350" r="8" fill="#fbbf24"/>
+  <circle cx="380" cy="420" r="8" fill="#fbbf24"/>
+</svg>
