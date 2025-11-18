@@ -1,5 +1,7 @@
 # Map Address
 
+![Screenshot](./mapaddress.png)
+
 A C++/Qt application for managing and visualizing physical addresses on
 interactive maps with Google Maps and OpenStreetMap support.
 
