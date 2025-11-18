@@ -126,6 +126,40 @@
           </property>
          </widget>
         </item>
+<item>
+         <layout class="QHBoxLayout" name="addressButtonsLayout">
+          <item>
+           <widget class="QPushButton" name="addAddressButton">
+            <property name="toolTip">
+             <string>Add a new address</string>
+            </property>
+            <property name="text">
+             <string>Add</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="editAddressButton">
+            <property name="toolTip">
+             <string>Edit the selected address</string>
+            </property>
+            <property name="text">
+             <string>Edit</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="deleteAddressButton">
+            <property name="toolTip">
+             <string>Delete the selected address</string>
+            </property>
+            <property name="text">
+             <string>Delete</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
         <item>
          <widget class="QLineEdit" name="searchLineEdit">
           <property name="placeholderText">
@@ -164,40 +198,6 @@
            </item>
           </layout>
          </widget>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="addressButtonsLayout">
-          <item>
-           <widget class="QPushButton" name="addAddressButton">
-            <property name="toolTip">
-             <string>Add a new address</string>
-            </property>
-            <property name="text">
-             <string>Add</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="editAddressButton">
-            <property name="toolTip">
-             <string>Edit the selected address</string>
-            </property>
-            <property name="text">
-             <string>Edit</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="deleteAddressButton">
-            <property name="toolTip">
-             <string>Delete the selected address</string>
-            </property>
-            <property name="text">
-             <string>Delete</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
         </item>
        </layout>
       </widget>
