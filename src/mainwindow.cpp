@@ -25,6 +25,8 @@ MainWindow::MainWindow(QWidget *parent)
     , m_currentListId(-1)
     , m_routeStartId(-1)
     , m_routeEndId(-1)
+    , m_pendingAddressLat(0.0)
+    , m_pendingAddressLng(0.0)
 {
     ui->setupUi(this);
     
@@ -81,6 +83,12 @@ void MainWindow::setupConnections()
             this, &MainWindow::onRouteCalculated);
     connect(m_routingService, &RoutingService::routeFailed,
             this, &MainWindow::onRouteFailed);
+    
+    // Geocoding service for reverse geocoding
+    connect(m_geocodingService, &GeocodingService::reverseGeocodingCompleted,
+            this, &MainWindow::onReverseGeocodeCompleted);
+    connect(m_geocodingService, &GeocodingService::reverseGeocodingFailed,
+            this, &MainWindow::onReverseGeocodeFailed);
     
     // Map provider selector
     connect(ui->mapProviderComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), 
@@ -743,9 +751,13 @@ void MainWindow::onMapClicked(double latitude, double longitude)
         }
     }
     else if (selectedAction == addAddressAction) {
-        // TODO: Open dialog to add address at this location
-        ui->statusbar->showMessage(QString("Add address at: %1, %2 (feature coming soon)")
-            .arg(latitude, 0, 'f', 5).arg(longitude, 0, 'f', 5), 3000);
+        // Store coordinates for later use
+        m_pendingAddressLat = latitude;
+        m_pendingAddressLng = longitude;
+        
+        // Start reverse geocoding to get address details
+        ui->statusbar->showMessage("Getting address information...", 0);
+        m_geocodingService->reverseGeocode(latitude, longitude);
     }
 }
 
@@ -983,6 +995,118 @@ void MainWindow::loadRouteInfo(int listId)
         // Reload map to show restored markers
         if (m_mapWidget) {
             m_mapWidget->loadMap();
+        }
+    }
+}
+
+void MainWindow::onReverseGeocodeCompleted(const QString& street, const QString& city,
+                                          const QString& state, const QString& country)
+{
+    if (m_currentListId == -1) {
+        ui->statusbar->showMessage("Please select a list first", 3000);
+        return;
+    }
+    
+    // Create address with geocoded information
+    Address address;
+    address.setStreet(street);
+    address.setCity(city);
+    address.setState(state);
+    address.setCountry(country);
+    address.setLatitude(m_pendingAddressLat);
+    address.setLongitude(m_pendingAddressLng);
+    
+    // Open the address dialog with pre-filled information
+    AddressDialog dialog(this);
+    dialog.setWindowTitle("Add Address from Map");
+    dialog.setListId(m_currentListId);
+    dialog.setAddress(address);
+    
+    ui->statusbar->clearMessage();
+    
+    if (dialog.exec() == QDialog::Accepted) {
+        Address finalAddress = dialog.getAddress();
+        int addressId = Database::instance().addAddress(m_currentListId, finalAddress);
+        
+        if (addressId > 0) {
+            finalAddress.setId(addressId);
+            
+            QString displayText = QString("%1, %2, %3")
+                .arg(finalAddress.getStreet())
+                .arg(finalAddress.getCity())
+                .arg(finalAddress.getState());
+            
+            auto item = new QListWidgetItem(displayText, ui->addressListWidget);
+            item->setData(Qt::UserRole, addressId);
+            
+            if (finalAddress.hasCoordinates() && m_mapWidget->getCurrentProvider()) {
+                m_mapWidget->getCurrentProvider()->addMarker(addressId, 
+                    finalAddress.getLatitude(), finalAddress.getLongitude(), displayText);
+                
+                // Refit map to show all markers including the new one
+                auto addresses = Database::instance().getAddressesForList(m_currentListId);
+                m_mapWidget->getCurrentProvider()->fitBounds(addresses);
+                m_mapWidget->loadMap();
+            }
+            
+            ui->statusbar->showMessage("Address added from map location", 2000);
+        } else {
+            QMessageBox::warning(this, "Error", "Failed to add address to database");
+        }
+    }
+}
+
+void MainWindow::onReverseGeocodeFailed(const QString& error)
+{
+    if (m_currentListId == -1) {
+        ui->statusbar->showMessage("Please select a list first", 3000);
+        return;
+    }
+    
+    // Even if reverse geocoding fails, allow user to add address manually with coordinates
+    Address address;
+    address.setLatitude(m_pendingAddressLat);
+    address.setLongitude(m_pendingAddressLng);
+    address.setStreet(QString("Location: %1, %2")
+        .arg(m_pendingAddressLat, 0, 'f', 5)
+        .arg(m_pendingAddressLng, 0, 'f', 5));
+    
+    // Open the address dialog with coordinates
+    AddressDialog dialog(this);
+    dialog.setWindowTitle("Add Address from Map");
+    dialog.setListId(m_currentListId);
+    dialog.setAddress(address);
+    
+    ui->statusbar->showMessage("Could not get address details. Please enter manually.", 3000);
+    
+    if (dialog.exec() == QDialog::Accepted) {
+        Address finalAddress = dialog.getAddress();
+        int addressId = Database::instance().addAddress(m_currentListId, finalAddress);
+        
+        if (addressId > 0) {
+            finalAddress.setId(addressId);
+            
+            QString displayText = QString("%1, %2, %3")
+                .arg(finalAddress.getStreet())
+                .arg(finalAddress.getCity())
+                .arg(finalAddress.getState());
+            
+            auto item = new QListWidgetItem(displayText, ui->addressListWidget);
+            item->setData(Qt::UserRole, addressId);
+            
+            if (finalAddress.hasCoordinates() && m_mapWidget->getCurrentProvider()) {
+                m_mapWidget->getCurrentProvider()->addMarker(addressId, 
+                    finalAddress.getLatitude(), finalAddress.getLongitude(), displayText);
+                
+                // Refit map to show all markers including the new one
+                auto addresses = Database::instance().getAddressesForList(m_currentListId);
+                m_mapWidget->getCurrentProvider()->fitBounds(addresses);
+                m_mapWidget->loadMap();
+            }
+            
+            ui->statusbar->showMessage("Address added from map location", 2000);
+        } else {
+            QMessageBox::warning(this, "Error", "Failed to add address to database");
         }
     }
 }

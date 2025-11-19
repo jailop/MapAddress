@@ -43,6 +43,9 @@ private slots:
     void onShowAddressContextMenu(const QPoint& pos);
     void onRouteCalculated(const QList<QPointF>& routePoints);
     void onRouteFailed(const QString& error);
+    void onReverseGeocodeCompleted(const QString& street, const QString& city,
+                                   const QString& state, const QString& country);
+    void onReverseGeocodeFailed(const QString& error);
 
 private:
     Ui::MainWindow *ui;
@@ -54,6 +57,8 @@ private:
     int m_routeEndId;
     Address m_mapClickStartAddr;
     Address m_mapClickEndAddr;
+    double m_pendingAddressLat;
+    double m_pendingAddressLng;
 
     void setupConnections();
     void setupMapWidget();

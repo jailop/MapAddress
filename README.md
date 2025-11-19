@@ -3,7 +3,7 @@
 ![Screenshot](./mapaddress.png)
 
 A C++/Qt application for managing and visualizing physical addresses on
-interactive maps with Google Maps and OpenStreetMap support.
+interactive maps with OpenStreetMap and Google Maps support.
 
 Address Management:
 
@@ -11,15 +11,20 @@ Address Management:
 - CRUD Operations: Add, edit, and delete addresses with dw0full geocoding support
 - Search & Filter: Real-time search through addresses
 - CSV Import/Export: Bulk import and export address data
-- Address Details: View comprehensive address information with coordinates
+- Address Details: View address information with coordinates
 
 Map Integration:
 
 - Dual Map Providers: Switch between Google Maps and OpenStreetMap
 - Interactive Markers: Custom markers with tooltips and popups
-- Address Geocoding: Automatic address-to-coordinates conversion using OpenStreetMap Nominatim
+- Address Geocoding: Automatic address-to-coordinates conversion using
+  OpenStreetMap Nominatim
+- Reverse Geocoding: Click map to add addresses at any location
 - Map Navigation: Zoom, pan, and fit all markers functionality
-- Bidirectional Sync: Click markers to select addresses or click addresses to center map
+- Bidirectional Sync: Click markers to select addresses or click
+  addresses to center map
+- Routing: Mark the start and the end the generate a route to visit all
+  addresses included in a list
 
 Data Persistence:
 
@@ -107,7 +112,8 @@ export GOOGLE_MAPS_API_KEY="your-api-key-here"
 
 Debugging:
 
-Web Console Debugging: The application includes built-in web console debugging for the map widget.
+Web Console Debugging: The application includes built-in web console
+debugging for the map widget.
 
 Method 1: Remote Debugging (Chrome DevTools)
 
@@ -144,12 +150,29 @@ Creating Address Lists:
 
 Adding Addresses:
 
+Method 1: Traditional Entry
+
 1. Select a list from the dropdown
 2. Click "Add" button or press Ctrl+N
 3. Enter address in format: `Street, City, State ZIP`
    - Example: `123 Main St, Springfield, IL 62701`
 4. Click "Verify Address" to geocode
 5. Click OK to save
+
+Method 2: Click on Map
+
+1. Select a list from the dropdown
+2. Click anywhere on the map to mark a location
+3. Select "Add Address at Location" from the context menu
+4. The application will automatically reverse geocode the coordinates
+5. Review and edit the address details if needed
+6. Click OK to save
+
+The map-click feature is particularly useful for:
+- Adding addresses for locations without formal addresses
+- Quickly marking points of interest on the map
+- Adding addresses in remote or rural areas
+- Creating waypoints for route planning
 
 Importing Addresses:
 
@@ -172,7 +195,7 @@ Map Operations:
 
 Testing:
 
-The application includes comprehensive unit tests for data models,
+The application includes unit tests for data models,
 database operations, and CRUD functionality.
 
 Running Tests
