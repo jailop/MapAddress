@@ -14,6 +14,8 @@ AddressDialog::AddressDialog(QWidget *parent)
     connect(ui->geocodeButton, &QPushButton::clicked, this, &AddressDialog::onGeocodeClicked);
     connect(m_geocodingService, &GeocodingService::geocodingCompleted, this, &AddressDialog::onGeocodeFinished);
     connect(m_geocodingService, &GeocodingService::geocodingFailed, this, &AddressDialog::onGeocodeFailed);
+    connect(m_geocodingService, &GeocodingService::geocodingMultipleResults, this, &AddressDialog::onMultipleCandidates);
+    connect(ui->candidatesComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &AddressDialog::onCandidateSelected);
     
     // Disable OK button until address is geocoded
     ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
@@ -93,7 +95,12 @@ void AddressDialog::onGeocodeClicked()
     tempAddress.setCountry("USA"); // Default
     m_address = tempAddress;
     
-    m_geocodingService->geocode(tempAddress);
+    // Hide candidates dropdown when starting new geocode
+    ui->candidatesComboBox->setVisible(false);
+    ui->candidatesComboBox->clear();
+    m_candidates.clear();
+    
+    m_geocodingService->geocode(tempAddress, 5); // Request up to 5 results
 }
 
 void AddressDialog::onGeocodeFinished(double latitude, double longitude, const QString& formattedAddress)
@@ -115,9 +122,55 @@ void AddressDialog::onGeocodeFailed(const QString& error)
     ui->statusLabel->setText(QString("<font color='red'>✗ %1</font>").arg(error));
     ui->geocodeButton->setEnabled(true);
     ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
+    ui->candidatesComboBox->setVisible(false);
     
     QMessageBox::warning(this, "Geocoding Failed", 
         QString("Could not verify address: %1\n\nPlease check the address and try again.").arg(error));
+}
+
+void AddressDialog::onMultipleCandidates(const QVector<GeocodingCandidate>& candidates)
+{
+    m_candidates = candidates;
+    ui->candidatesComboBox->clear();
+    
+    if (candidates.size() > 1) {
+        ui->statusLabel->setText(QString("<font color='orange'>⚠ Multiple addresses found (%1). Please select the correct one:</font>")
+            .arg(candidates.size()));
+    } else {
+        ui->statusLabel->setText("<font color='green'>✓ Address found. Please confirm:</font>");
+    }
+    
+    for (const auto& candidate : candidates) {
+        QString displayText = QString("%1 (Type: %2)")
+            .arg(candidate.displayName)
+            .arg(candidate.type);
+        ui->candidatesComboBox->addItem(displayText);
+    }
+    
+    ui->candidatesComboBox->setVisible(true);
+    ui->geocodeButton->setEnabled(true);
+    
+    // Auto-select first candidate
+    if (!candidates.isEmpty()) {
+        onCandidateSelected(0);
+    }
+}
+
+void AddressDialog::onCandidateSelected(int index)
+{
+    if (index < 0 || index >= m_candidates.size()) {
+        return;
+    }
+    
+    const GeocodingCandidate& candidate = m_candidates[index];
+    
+    m_address.setLatitude(candidate.latitude);
+    m_address.setLongitude(candidate.longitude);
+    m_geocoded = true;
+    
+    updateCoordinatesDisplay();
+    
+    ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
 }
 
 void AddressDialog::updateCoordinatesDisplay()

@@ -1,0 +1,240 @@
+name: Build Multi-Platform Installers
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    name: Build macOS DMG
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.5.0'
+          modules: 'qtwebengine qtwebchannel qtpositioning'
+      
+      - name: Install create-dmg
+        run: |
+          brew install create-dmg
+      
+      - name: Configure CMake
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release
+      
+      - name: Build Application
+        run: |
+          cd build
+          make -j$(sysctl -n hw.ncpu)
+      
+      - name: Deploy Qt dependencies
+        run: |
+          cd build
+          macdeployqt MapAddress.app -verbose=2
+      
+      - name: Create DMG
+        run: |
+          chmod +x create_dmg_enhanced.sh
+          ./create_dmg_enhanced.sh
+        env:
+          CI: true
+      
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: MapAddress-macOS
+          path: MapAddress-*.dmg
+      
+      - name: Upload to Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: MapAddress-*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-windows:
+    name: Build Windows Installer
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.5.0'
+          modules: 'qtwebengine qtwebchannel qtpositioning'
+          arch: 'win64_msvc2019_64'
+      
+      - name: Setup MSVC
+        uses: microsoft/setup-msbuild@v1.1
+      
+      - name: Install vcpkg
+        run: |
+          git clone https://github.com/Microsoft/vcpkg.git C:\vcpkg
+          C:\vcpkg\bootstrap-vcpkg.bat
+      
+      - name: Install md4c
+        run: |
+          C:\vcpkg\vcpkg install md4c:x64-windows
+      
+      - name: Configure CMake
+        run: |
+          # Verify required files exist
+          Write-Host "=== Verifying required files ==="
+          if (!(Test-Path LICENSE)) {
+            Write-Host "ERROR: LICENSE file not found!"
+            exit 1
+          } else {
+            Write-Host "✓ LICENSE file found"
+          }
+          Write-Host "NOTE: Icon file is optional and will be included if available"
+          
+          Write-Host "=== Configuring CMake ==="
+          mkdir build
+          cd build
+          cmake .. -G "Visual Studio 17 2022" -A x64 `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+          
+          Write-Host "=== Verifying CPack configuration ==="
+          if (!(Test-Path CPackConfig.cmake)) {
+            Write-Host "ERROR: CPackConfig.cmake not generated!"
+            exit 1
+          } else {
+            Write-Host "✓ CPackConfig.cmake generated successfully"
+          }
+      
+      - name: Build Application
+        run: |
+          cd build
+          cmake --build . --config Release
+      
+      - name: Deploy Qt dependencies
+        run: |
+          cd build\Release
+          # Try with no-translations first (faster and avoids common issues)
+          windeployqt MapAddress.exe --webenginewidgets --release --no-translations --no-system-d3d-compiler --no-opengl-sw
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "First attempt failed, trying with minimal options..."
+            windeployqt MapAddress.exe --release --no-translations
+          }
+      
+      - name: Install NSIS
+        run: |
+          choco install nsis -y
+      
+      - name: Create Windows Installer
+        run: |
+          cd build
+          cpack -G NSIS -C Release
+      
+      - name: Upload Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: MapAddress-Windows
+          path: build/MapAddress-*.exe
+      
+      - name: Upload to Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/MapAddress-*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+#   build-linux:
+#     name: Build Linux AppImage
+#     runs-on: ubuntu-20.04
+#     
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+#       
+#       - name: Install Dependencies
+#         run: |
+#           sudo apt-get update
+#           sudo apt-get install -y \
+#             build-essential \
+#             cmake \
+#             ninja-build \
+#             libgl1-mesa-dev \
+#             libxkbcommon-x11-0 \
+#             libxcb-icccm4 \
+#             libxcb-image0 \
+#             libxcb-keysyms1 \
+#             libxcb-render-util0 \
+#             libxcb-xinerama0 \
+#             libxcb-cursor0 \
+#             libmd4c-dev \
+#             libmd4c-html-dev \
+#             wget \
+#             file
+#       
+#       - name: Install Qt
+#         uses: jurplel/install-qt-action@v3
+#         with:
+#           version: '6.5.0'
+#           modules: 'qtwebengine qtwebchannel qtpositioning qtsvg'
+#       
+#       - name: Configure CMake
+#         run: |
+#           mkdir build
+#           cd build
+#           cmake .. -DCMAKE_BUILD_TYPE=Release \
+#             -DCMAKE_INSTALL_PREFIX=/usr
+#       
+#       - name: Build Application
+#         run: |
+#           cd build
+#           make -j$(nproc)
+#       
+#       - name: Install to AppDir
+#         run: |
+#           cd build
+#           make install DESTDIR=AppDir
+#       
+#       - name: Download linuxdeploy
+#         run: |
+#           wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+#           wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+#           chmod +x linuxdeploy*.AppImage
+#       
+#       - name: Create AppImage
+#         run: |
+#           cd build
+#           export QMAKE=$Qt6_DIR/bin/qmake
+#           ../linuxdeploy-x86_64.AppImage \
+#             --appdir AppDir \
+#             --plugin qt \
+#             --output appimage
+#         env:
+#           VERSION: ${{ github.ref_name }}
+#       
+#       - name: Upload AppImage
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: MapAddress-Linux
+#           path: build/MapAddress-*.AppImage
+#       
+#       - name: Upload to Release
+#         if: startsWith(github.ref, 'refs/tags/')
+#         uses: softprops/action-gh-release@v1
+#         with:
+#           files: build/MapAddress-*.AppImage
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

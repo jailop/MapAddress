@@ -1,5 +1,5 @@
 #include <QtTest/QtTest>
-#include "../src/address.h"
+#include "address.h"
 
 class TestAddress : public QObject
 {

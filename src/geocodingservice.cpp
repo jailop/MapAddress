@@ -16,8 +16,9 @@ GeocodingService::GeocodingService(QObject* parent)
 GeocodingService::~GeocodingService() {
 }
 
-void GeocodingService::geocode(const Address& address) {
-    QString url = buildGeocodeUrl(address);
+void GeocodingService::geocode(const Address& address, int maxResults) {
+    m_maxResults = maxResults;
+    QString url = buildGeocodeUrl(address, maxResults);
     QString fullAddress = address.getFullAddress();
     LOG_INFO("Geocoding address: " + fullAddress);
     LOG_DEBUG("Geocoding URL: " + url);
@@ -43,7 +44,7 @@ void GeocodingService::reverseGeocode(double latitude, double longitude) {
     connect(reply, &QNetworkReply::finished, this, &GeocodingService::onReverseGeocodeFinished);
 }
 
-QString GeocodingService::buildGeocodeUrl(const Address& address) const {
+QString GeocodingService::buildGeocodeUrl(const Address& address, int maxResults) const {
     // Build a structured query for better results
     QStringList queryParts;
     
@@ -67,8 +68,8 @@ QString GeocodingService::buildGeocodeUrl(const Address& address) const {
     QString encodedQuery = QUrl::toPercentEncoding(query);
     
     // Add countrycodes parameter if country is specified to improve results
-    QString url = QString("https://nominatim.openstreetmap.org/search?q=%1&format=json&limit=1&addressdetails=1")
-        .arg(encodedQuery);
+    QString url = QString("https://nominatim.openstreetmap.org/search?q=%1&format=json&limit=%2&addressdetails=1")
+        .arg(encodedQuery).arg(maxResults);
     
     return url;
 }
@@ -119,7 +120,50 @@ void GeocodingService::onGeocodeFinished() {
         return;
     }
 
-    QJsonObject result = doc.array().first().toObject();
+    QJsonArray results = doc.array();
+    
+    // If requesting multiple results, emit all candidates (even if just one)
+    if (m_maxResults > 1) {
+        QVector<GeocodingCandidate> candidates;
+        
+        for (const QJsonValue &value : results) {
+            QJsonObject result = value.toObject();
+            
+            if (!result.contains("lat") || !result.contains("lon")) {
+                continue;
+            }
+            
+            bool latOk, lonOk;
+            double lat = result["lat"].toString().toDouble(&latOk);
+            double lon = result["lon"].toString().toDouble(&lonOk);
+            
+            if (!latOk || !lonOk) {
+                continue;
+            }
+            
+            GeocodingCandidate candidate;
+            candidate.latitude = lat;
+            candidate.longitude = lon;
+            candidate.displayName = result["display_name"].toString();
+            candidate.type = result["type"].toString();
+            candidate.importance = result["importance"].toDouble();
+            
+            candidates.append(candidate);
+        }
+        
+        if (candidates.isEmpty()) {
+            LOG_ERROR("No valid candidates found in response");
+            emit geocodingFailed("No valid addresses found. Please try again.");
+            return;
+        }
+        
+        LOG_INFO(QString("Geocoding returned %1 candidate(s)").arg(candidates.size()));
+        emit geocodingMultipleResults(candidates);
+        return;
+    }
+    
+    // Single result - use existing behavior
+    QJsonObject result = results.first().toObject();
     
     // Validate response data
     if (!result.contains("lat") || !result.contains("lon")) {

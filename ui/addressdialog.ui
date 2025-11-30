@@ -42,6 +42,16 @@
     </widget>
    </item>
    <item>
+    <widget class="QComboBox" name="candidatesComboBox">
+     <property name="visible">
+      <bool>false</bool>
+     </property>
+     <property name="toolTip">
+      <string>Multiple addresses found - select the correct one</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QPushButton" name="geocodeButton">
      <property name="text">
       <string>Verify Address</string>

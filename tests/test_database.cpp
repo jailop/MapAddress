@@ -1,5 +1,5 @@
 #include <QtTest/QtTest>
-#include "../src/database.h"
+#include "database.h"
 #include <QTemporaryDir>
 
 class TestDatabase : public QObject

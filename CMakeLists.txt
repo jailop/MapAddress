@@ -8,6 +8,22 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTOUIC_SEARCH_PATHS ${CMAKE_SOURCE_DIR}/ui)
+
+if(WIN32)
+    set(CMAKE_WIN32_EXECUTABLE ON)
+endif()
+if(APPLE)
+    set(MACOSX_BUNDLE_BUNDLE_NAME "MapAddress")
+    set(MACOSX_BUNDLE_GUI_IDENTIFIER "dev.datainquiry.mapaddress")
+    set(MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION})
+    set(MACOSX_BUNDLE_SHORT_VERSION_STRING
+    ${PROJECT_VERSION})
+    # set(MACOSX_BUNDLE_ICON_FILE "mapaddress.icns")
+endif()
+if (UNIX AND NOT APPLE)
+    add_compile_options(-Wall -g)
+endif()
 
 find_package(Qt6 REQUIRED COMPONENTS
     Core
@@ -21,44 +37,74 @@ find_package(Qt6 REQUIRED COMPONENTS
     Test
 )
 
-set(PROJECT_SOURCES
+set(SOURCES
     src/main.cpp
     src/mainwindow.cpp
-    src/mainwindow.h
-    src/mainwindow.ui
     src/addressdialog.cpp
-    src/addressdialog.h
-    src/addressdialog.ui
     src/settingsdialog.cpp
-    src/settingsdialog.h
-    src/settingsdialog.ui
     src/address.cpp
-    src/address.h
     src/addresslist.cpp
-    src/addresslist.h
     src/database.cpp
-    src/database.h
-    src/mapprovider.h
     src/googlemapsprovider.cpp
-    src/googlemapsprovider.h
     src/openstreetmapprovider.cpp
-    src/openstreetmapprovider.h
     src/geocodingservice.cpp
-    src/geocodingservice.h
     src/mapwidget.cpp
-    src/mapwidget.h
     src/logger.cpp
-    src/logger.h
     src/routingservice.cpp
-    src/routingservice.h
+)
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+set(HEADERS
+    include/mainwindow.h
+    include/addressdialog.h
+    include/settingsdialog.h
+    include/address.h
+    include/addresslist.h
+    include/database.h
+    include/mapprovider.h
+    include/googlemapsprovider.h
+    include/openstreetmapprovider.h
+    include/geocodingservice.h
+    include/mapwidget.h
+    include/logger.h
+    include/routingservice.h
+)
+
+set(UIS
+    ui/mainwindow.ui
+    ui/addressdialog.ui
+    ui/settingsdialog.ui
+)
+
+set(RESOURCES
     resources/resources.qrc
 )
 
-add_executable(${PROJECT_NAME}
-    ${PROJECT_SOURCES}
-)
+if(WIN32)
+    add_executable(${PROJECT_NAME} WIN32
+        ${SOURCES}
+        ${HEADERS}
+        ${UIS}
+        ${RESOURCES}
+    )
+elseif(APPLE)
+    add_executable(${PROJECT_NAME} MACOSX_BUNDLE
+        ${SOURCES}
+        ${HEADERS}
+        ${UIS}
+        ${RESOURCES}
+    )
+else()
+    add_executable(${PROJECT_NAME}
+        ${SOURCES}
+        ${HEADERS}
+        ${UIS}
+        ${RESOURCES}
+    )
+endif()
 
-target_link_libraries(${PROJECT_NAME}
+target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Core
     Qt6::Widgets
     Qt6::Network
@@ -69,119 +115,98 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::Sql
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
+# target_include_directories(${PROJECT_NAME} PRIVATE
+#     ${CMAKE_CURRENT_SOURCE_DIR}/src
+# )
 
-install(TARGETS ${PROJECT_NAME}
-    RUNTIME DESTINATION bin
-)
+if(WIN32)
+    install(TARGETS ${PROJECT_NAME}
+        RUNTIME DESTINATION
+    )
+    # deploy QT dependencies
+    if (Qt6_DIR)
+        get_target_property(QMAKE_EXECUTABLE Qt6::qmake IMPORTED_LOCATION)
+        get_filename_component(QT_BIN_DIR "${QMAKE_EXECUTABLE}" DIRECTORY)
+        find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${QT_BIN_DIR}")
+        if (WINDEPLOYQT_EXECUTABLE)
+            install(CODE "execute_process(COMMAND \"${WINDEPLOYQT_EXECUTABLE}\" \"\${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}.exe\")")
+        endif()
+    endif()
+elseif(APPLE)
+    install(TARGETS ${PROJECT_NAME}
+        BUNDLE DESTINATION .
+    )
+    # deploy QT dependencies
+    if (Qt6_DIR)
+        get_target_property(QMAKE_EXECUTABLE Qt6::qmake IMPORTED_LOCATION)
+        get_filename_component(QT_BIN_DIR "${QMAKE_EXECUTABLE}" DIRECTORY)
+        find_program(MACDEPLOYQT_EXECUTABLE macdeployqt HINTS "${QT_BIN_DIR}")
+        if (MACDEPLOYQT_EXECUTABLE)
+            install(CODE "execute_process(COMMAND \"${MACDEPLOYQT_EXECUTABLE}\" \"\${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}.app\")")
+        endif()
+    endif()
+else()
+    install(TARGETS ${PROJECT_NAME}
+        RUNTIME DESTINATION bin
+    )
+endif()
 
-# Tests
-enable_testing()
-
-# Test Address
-add_executable(test_address
-    tests/test_address.cpp
-    src/address.cpp
-    src/address.h
-)
-target_link_libraries(test_address Qt6::Core Qt6::Test)
-target_include_directories(test_address PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-add_test(NAME test_address COMMAND test_address)
-
-# Test AddressList
-add_executable(test_addresslist
-    tests/test_addresslist.cpp
-    src/addresslist.cpp
-    src/addresslist.h
-    src/address.cpp
-    src/address.h
-)
-target_link_libraries(test_addresslist Qt6::Core Qt6::Test)
-target_include_directories(test_addresslist PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-add_test(NAME test_addresslist COMMAND test_addresslist)
-
-# Test Database
-add_executable(test_database
-    tests/test_database.cpp
-    src/database.cpp
-    src/database.h
-    src/address.cpp
-    src/address.h
-    src/addresslist.cpp
-    src/addresslist.h
-    src/logger.cpp
-    src/logger.h
-)
-target_link_libraries(test_database Qt6::Core Qt6::Test Qt6::Sql)
-target_include_directories(test_database PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-add_test(NAME test_database COMMAND test_database)
+option(BUILD_TESTS "Build unit tests" ON)
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 
 # CPack Configuration for installers
 set(CPACK_PACKAGE_NAME "MapAddress")
-set(CPACK_PACKAGE_VENDOR "DataInquiry")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Map Address - Manage and visualize addresses on interactive maps")
-set(CPACK_PACKAGE_VERSION_MAJOR "1")
-set(CPACK_PACKAGE_VERSION_MINOR "0")
-set(CPACK_PACKAGE_VERSION_PATCH "0")
+set(CPACK_PACKAGE_VENDOR "MapAddress")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Markdown editor with wiki-style linking")
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "MapAddress")
-set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
-set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+
+# Set license file if it exists
+if(EXISTS "${CMAKE_SOURCE_DIR}/LICENSE")
+    set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+else()
+    message(WARNING "LICENSE file not found - installer will not include license")
+endif()
 
 # Windows NSIS installer
 if(WIN32)
-    set(CPACK_GENERATOR "NSIS;ZIP")
+    set(CPACK_GENERATOR "NSIS")
     set(CPACK_NSIS_DISPLAY_NAME "MapAddress")
     set(CPACK_NSIS_PACKAGE_NAME "MapAddress")
-    set(CPACK_NSIS_HELP_LINK "https://github.com/datainquiry/mapaddress")
-    set(CPACK_NSIS_URL_INFO_ABOUT "https://github.com/datainquiry/mapaddress")
-    set(CPACK_NSIS_CONTACT "support@datainquiry.com")
-    set(CPACK_NSIS_MODIFY_PATH ON)
     set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
-    set(CPACK_NSIS_MUI_ICON "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/app-icon.ico")
-    set(CPACK_NSIS_MUI_UNIICON "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/app-icon.ico")
-    set(CPACK_NSIS_INSTALLED_ICON_NAME "bin\\\\MapAddress.exe")
-    set(CPACK_NSIS_MENU_LINKS "bin/MapAddress.exe" "MapAddress")
+    set(CPACK_NSIS_MODIFY_PATH ON)
+    if(EXISTS "${CMAKE_SOURCE_DIR}/resources/mapaddress.ico")
+        set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/resources/mapaddress.ico")
+        set(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}/resources/mapaddress.ico")
+    endif()
+    set(CPACK_NSIS_INSTALLED_ICON_NAME "bin\\\\mapaddress.exe")
+    set(CPACK_NSIS_MENU_LINKS
+        "bin/mapaddress.exe" "MapAddress"
+    )
 endif()
 
-# Linux DEB/RPM packages
+# Linux DEB package
 if(UNIX AND NOT APPLE)
-    set(CPACK_GENERATOR "DEB;RPM;TGZ")
-    set(CPACK_DEBIAN_PACKAGE_MAINTAINER "DataInquiry")
-    set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6core6, libqt6gui6, libqt6widgets6, libqt6network6, libqt6webenginecore6, libqt6webenginewidgets6")
-    set(CPACK_RPM_PACKAGE_LICENSE "MIT")
-    set(CPACK_RPM_PACKAGE_GROUP "Applications/Productivity")
-endif()
-
-# macOS DMG
-if(APPLE)
-    set(CPACK_GENERATOR "DragNDrop")
+    set(CPACK_GENERATOR "DEB")
+    set(CPACK_DEBIAN_PACKAGE_MAINTAINER "MapAddress Developers")
+    set(CPACK_DEBIAN_PACKAGE_SECTION "editors")
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6core6, libqt6gui6, libqt6widgets6, libqt6webenginewidgets6, libmd4c-html0")
+    
+    # Install desktop file if it exists
+    if(EXISTS "${CMAKE_SOURCE_DIR}/resources/mapaddress.desktop")
+        install(FILES resources/mapaddress.desktop
+            DESTINATION share/applications)
+    endif()
+    
+    # Install icon if it exists
+    if(EXISTS "${CMAKE_SOURCE_DIR}/resources/mapaddress.png")
+        install(FILES resources/mapaddress.png
+            DESTINATION share/icons/hicolor/256x256/apps)
+    endif()
 endif()
 
 include(CPack)
 
-# Android-specific configuration
-if(ANDROID)
-    message(STATUS "Configuring for Android build")
-    
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        QT_ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/installer/android"
-        QT_ANDROID_MIN_SDK_VERSION 28
-        QT_ANDROID_TARGET_SDK_VERSION 33
-        QT_ANDROID_VERSION_CODE 1
-        QT_ANDROID_VERSION_NAME "1.0.0"
-    )
-    
-    # Set Android package details
-    set(ANDROID_PACKAGE_NAME "com.datainquiry.mapaddress")
-    set(ANDROID_APP_NAME "MapAddress")
-    
-    # Strip debug symbols to reduce APK size
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -s")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s")
-    
-    message(STATUS "Android package: ${ANDROID_PACKAGE_NAME}")
-    message(STATUS "Android min SDK: 28, target SDK: 33")
-endif()

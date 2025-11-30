@@ -25,6 +25,8 @@ private slots:
     void onGeocodeClicked();
     void onGeocodeFinished(double latitude, double longitude, const QString& formattedAddress);
     void onGeocodeFailed(const QString& error);
+    void onMultipleCandidates(const QVector<GeocodingCandidate>& candidates);
+    void onCandidateSelected(int index);
 
 private:
     Ui::AddressDialog *ui;
@@ -32,6 +34,7 @@ private:
     Address m_address;
     int m_listId;
     bool m_geocoded;
+    QVector<GeocodingCandidate> m_candidates;
     
     void updateCoordinatesDisplay();
 };
