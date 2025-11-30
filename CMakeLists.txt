@@ -31,8 +31,6 @@ find_package(Qt6 REQUIRED COMPONENTS
     Network
     WebEngineWidgets
     WebChannel
-    Location
-    Positioning
     Sql
     Test
 )
@@ -110,8 +108,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Network
     Qt6::WebEngineWidgets
     Qt6::WebChannel
-    Qt6::Location
-    Qt6::Positioning
     Qt6::Sql
 )
 

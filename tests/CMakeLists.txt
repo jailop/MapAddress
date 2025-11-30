@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 enable_testing()
 
-find_package(Qt6 REQUIRED COMPONENTS Test Core Widgets WebEngineWidgets Sql Network WebChannel Location Positioning)
+find_package(Qt6 REQUIRED COMPONENTS Test Core Widgets WebEngineWidgets Sql Network WebChannel)
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 

@@ -22,7 +22,7 @@ jobs:
         uses: jurplel/install-qt-action@v3
         with:
           version: '6.5.0'
-          modules: 'qtwebengine qtwebchannel qtpositioning'
+          modules: 'qtwebengine qtwebchannel'
       
       - name: Install create-dmg
         run: |
@@ -77,7 +77,7 @@ jobs:
         uses: jurplel/install-qt-action@v3
         with:
           version: '6.5.0'
-          modules: 'qtwebengine qtwebchannel qtpositioning'
+          modules: 'qtwebengine qtwebchannel'
           arch: 'win64_msvc2019_64'
       
       - name: Setup MSVC
@@ -103,6 +103,22 @@ jobs:
             Write-Host "✓ LICENSE file found"
           }
           Write-Host "NOTE: Icon file is optional and will be included if available"
+          
+          # Verify CMakeLists.txt doesn't contain deprecated Qt modules
+          Write-Host "=== Verifying CMakeLists.txt ==="
+          $cmake_content = Get-Content CMakeLists.txt -Raw
+          if ($cmake_content -match "Qt6Location|Qt6::Location") {
+            Write-Host "ERROR: CMakeLists.txt still contains deprecated Qt6Location references!"
+            exit 1
+          } else {
+            Write-Host "✓ CMakeLists.txt does not reference deprecated Qt modules"
+          }
+          
+          # Clean any existing build directory
+          if (Test-Path build) {
+            Write-Host "Removing existing build directory..."
+            Remove-Item -Recurse -Force build
+          }
           
           Write-Host "=== Configuring CMake ==="
           mkdir build
